@@ -1,0 +1,47 @@
+{
+    "variables": {
+        "aws_access_key": "",
+        "aws_secret_key": "",
+        "image_naming": "Actividad-1_Edu-Pinto-{{ timestamp }}"
+    },
+
+    "builders": [
+        {
+            "name": "aws",
+            "type": "amazon-ebs",
+            "access_key": "{{ user `aws_access_key` }}",
+            "secret_key": "{{ user `aws_secret_key` }}",
+            "region": "eu-west-3",
+            "source_ami": "ami-01d21b7be69801c2f",
+            "instance_type": "t2.micro",
+            "ssh_username": "ubuntu",
+            "ami_name": "{{ user `image_naming` }}",
+            "associate_public_ip_address": true
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "file",
+            "source": "hello.js",
+            "destination": "/home/ubuntu/hello.js"
+        },
+        {
+            "type": "file",
+            "source": "app.conf",
+            "destination": "/home/ubuntu/app.conf"
+        },
+        {
+            "type": "shell",
+            "script": "install_and_configure.sh"
+        }
+    ],
+    "post-processors": [
+        {
+            "type": "shell-local",
+            "inline": [
+                "image_id=$(aws ec2 describe-images --owners self --filters 'Name=name,Values={{ user `image_naming` }}' --query 'Images[*].[ImageId]' --output text)",
+                "aws ec2 run-instances --image-id $image_id --instance-type t2.micro --security-group-ids sg-052aa4af85250a1e0 --region eu-west-3"
+            ]
+        }
+    ]
+}
